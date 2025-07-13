@@ -18,21 +18,34 @@ export function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!email.trim() || !password) {
       toast.error('Please fill in all fields');
       return;
     }
 
-    setLoading(true);
-    const { error } = await signIn(email, password);
-    
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success('Logged in successfully!');
+    if (loading) {
+      return; // Prevent multiple submissions
     }
-    setLoading(false);
+
+    setLoading(true);
+    
+    try {
+      const { error } = await signIn(email.trim(), password);
+      
+      if (error) {
+        console.error('Login error:', error);
+        toast.error(error.message || 'Failed to sign in');
+      } else {
+        toast.success('Logged in successfully!');
+      }
+    } catch (error) {
+      console.error('Unexpected login error:', error);
+      toast.error('An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
+    
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 px-4 sm:px-6 lg:px-8">

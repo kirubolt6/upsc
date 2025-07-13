@@ -36,28 +36,43 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
     // Get initial session
     const getInitialSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+        
         if (error) {
           console.error('Error getting session:', error);
-          setLoading(false);
-          return;
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+        } else {
+          setSession(session);
+          setUser(session?.user ?? null);
+          
+          if (session?.user) {
+            await fetchProfile(session.user.id);
+          }
         }
-        
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-          await fetchProfile(session.user.id);
-      } else {
-        setLoading(false);
-      }
       } catch (error) {
         console.error('Error in getInitialSession:', error);
-        setLoading(false);
+        if (mounted) {
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+          setInitializing(false);
+        }
       }
     };
 
@@ -67,22 +82,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+
+      console.log('Auth state change:', event, session?.user?.id);
+      
       setSession(session);
       setUser(session?.user ?? null);
+      
       if (session?.user) {
         await fetchProfile(session.user.id);
       } else {
         setProfile(null);
-        setLoading(false);
+        if (!initializing) {
+          setLoading(false);
+        }
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchProfile = async (userId: string) => {
     try {
-      setLoading(true);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -91,10 +115,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (error) {
         if (error.code === 'PGRST116') {
-          // Profile not found, this is expected for new users
           console.log('Profile not found for user:', userId);
         } else {
-        console.error('Error fetching profile:', error);
+          console.error('Error fetching profile:', error);
         }
         setProfile(null);
       } else if (data) {
@@ -106,41 +129,61 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.error('Error fetching profile:', error);
       setProfile(null);
     } finally {
-      setLoading(false);
+      if (!initializing) {
+        setLoading(false);
+      }
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
+      
+      // Clear any existing session first
+      await supabase.auth.signOut();
+      
+      // Small delay to ensure cleanup
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
       
       if (error) {
+        console.error('Sign in error:', error);
+        setLoading(false);
         return { error };
       }
       
-      // The auth state change listener will handle profile fetching
-      return { error: null };
+      if (data.user && data.session) {
+        // The auth state change listener will handle the rest
+        console.log('Sign in successful for user:', data.user.id);
+        return { error: null };
+      } else {
+        setLoading(false);
+        return { error: new Error('No user or session returned') };
+      }
     } catch (error) {
       console.error('Sign in error:', error);
-      return { error };
-    } finally {
       setLoading(false);
+      return { error };
     }
   };
 
   const signUp = async (email: string, password: string, fullName: string, role: 'admin' | 'student') => {
     try {
       setLoading(true);
+      
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: email.trim(),
         password,
       });
 
-      if (error) return { error };
+      if (error) {
+        setLoading(false);
+        return { error };
+      }
 
       if (data.user) {
         // Create profile
@@ -148,37 +191,44 @@ export function AuthProvider({ children }: AuthProviderProps) {
           .from('profiles')
           .insert({
             id: data.user.id,
-            email,
+            email: email.trim(),
             full_name: fullName,
             role,
           });
 
         if (profileError) {
           console.error('Error creating profile:', profileError);
+          setLoading(false);
           return { error: profileError };
         }
       }
 
+      setLoading(false);
       return { error: null };
     } catch (error) {
       console.error('Sign up error:', error);
-      return { error };
-    } finally {
       setLoading(false);
+      return { error };
     }
   };
 
   const signOut = async () => {
     try {
       setLoading(true);
+      
+      // Clear local state first
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+      
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Sign out error:', error);
       }
-      // Clear local state
-      setUser(null);
-      setProfile(null);
-      setSession(null);
+      
+      // Ensure we're in a clean state
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
     } catch (error) {
       console.error('Sign out error:', error);
     } finally {
