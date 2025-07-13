@@ -3,27 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY!;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    flowType: 'pkce',
-    debug: false
-  },
-  global: {
-    headers: {
-      'X-Client-Info': 'upsc-tracker'
-    }
-  },
-  db: {
-    schema: 'public'
-  }
-});
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export type Database = {
   public: {
@@ -165,7 +145,7 @@ export type Database = {
           option_b: string;
           option_c: string;
           option_d: string;
-          correct_answer: string;
+          correct_answer: 'A' | 'B' | 'C' | 'D';
           explanation: string | null;
           order_index: number;
           created_at: string;
@@ -178,7 +158,7 @@ export type Database = {
           option_b: string;
           option_c: string;
           option_d: string;
-          correct_answer: string;
+          correct_answer: 'A' | 'B' | 'C' | 'D';
           explanation?: string | null;
           order_index?: number;
           created_at?: string;
@@ -191,7 +171,7 @@ export type Database = {
           option_b?: string;
           option_c?: string;
           option_d?: string;
-          correct_answer?: string;
+          correct_answer?: 'A' | 'B' | 'C' | 'D';
           explanation?: string | null;
           order_index?: number;
           created_at?: string;
@@ -260,21 +240,4 @@ export type Database = {
       };
     };
   };
-};
-
-// Helper function to handle database errors
-export const handleDatabaseError = (error: any, operation: string) => {
-  console.error(`Database error during ${operation}:`, error);
-  
-  if (error.code === 'PGRST116') {
-    return 'Record not found';
-  } else if (error.code === '23505') {
-    return 'This record already exists';
-  } else if (error.code === '23503') {
-    return 'Cannot delete this record as it is referenced by other data';
-  } else if (error.message?.includes('row-level security')) {
-    return 'You do not have permission to perform this action';
-  } else {
-    return error.message || `Failed to ${operation}`;
-  }
 };
