@@ -11,10 +11,10 @@ export function Register() {
   const [role, setRole] = useState<'admin' | 'student'>('student');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signUp, user } = useAuth();
+  const { signUp, user, loading: authLoading } = useAuth();
 
   // Redirect if already logged in
-  if (user) {
+  if (user && !authLoading) {
     return <Navigate to="/dashboard" replace />;
   }
 

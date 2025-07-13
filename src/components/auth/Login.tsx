@@ -9,10 +9,10 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn, user, profile } = useAuth();
+  const { signIn, user, profile, loading: authLoading } = useAuth();
 
   // Redirect if already logged in
-  if (user && profile) {
+  if (user && profile && !authLoading) {
     return <Navigate to={profile.role === 'admin' ? '/admin' : '/dashboard'} replace />;
   }
 

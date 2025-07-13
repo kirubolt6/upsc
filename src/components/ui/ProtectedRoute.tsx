@@ -10,16 +10,27 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, requireAdmin = false, requireStudent = false }: ProtectedRouteProps) {
   const { user, profile, loading } = useAuth();
+  const [timeoutReached, setTimeoutReached] = useState(false);
+
+  // Set a timeout to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setTimeoutReached(true);
+    }, 3000);
+
+    return () => clearTimeout(timeout);
+  }, []);
 
   console.log('🔍 ProtectedRoute check:', { 
     hasUser: !!user, 
     hasProfile: !!profile, 
     loading, 
+    timeoutReached,
     userRole: profile?.role 
   });
 
   // Show loading spinner while auth is being determined
-  if (loading) {
+  if (loading && !timeoutReached) {
     console.log('⏳ ProtectedRoute: Still loading auth state');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -29,6 +40,12 @@ export function ProtectedRoute({ children, requireAdmin = false, requireStudent 
         </div>
       </div>
     );
+  }
+
+  // If timeout reached and still loading, redirect to login
+  if (timeoutReached && loading) {
+    console.log('⏰ ProtectedRoute: Timeout reached, redirecting to login');
+    return <Navigate to="/login" replace />;
   }
 
   // Redirect to login if no user or profile

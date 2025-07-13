@@ -40,15 +40,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     let mounted = true;
     let profileFetchController: AbortController | null = null;
+    let initializationTimeout: NodeJS.Timeout | null = null;
 
     // Initialize auth state
     const initializeAuth = async () => {
       try {
         console.log('🔄 Initializing auth...');
         
+        // Set a timeout to prevent infinite loading
+        initializationTimeout = setTimeout(() => {
+          if (mounted) {
+            console.log('⏰ Auth initialization timeout, setting loading to false');
+            setLoading(false);
+          }
+        }, 5000);
+        
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
         if (!mounted) return;
+        
+        // Clear timeout since we got a response
+        if (initializationTimeout) {
+          clearTimeout(initializationTimeout);
+          initializationTimeout = null;
+        }
         
         if (error) {
           console.error('❌ Error getting session:', error);
@@ -69,6 +84,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       } catch (error) {
         console.error('❌ Error initializing auth:', error);
+        if (initializationTimeout) {
+          clearTimeout(initializationTimeout);
+          initializationTimeout = null;
+        }
         if (mounted) {
           resetAuthState();
         }
@@ -164,6 +183,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Cleanup
     return () => {
       mounted = false;
+      if (initializationTimeout) {
+        clearTimeout(initializationTimeout);
+      }
       if (profileFetchController) {
         profileFetchController.abort();
       }
