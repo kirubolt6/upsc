@@ -16,7 +16,7 @@ import { QuestionManagement } from './components/admin/QuestionManagement';
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <div className="min-h-screen bg-gray-50">
           <Routes>
             <Route path="/login" element={<Login />} />
@@ -84,6 +84,9 @@ function App() {
             
             {/* Default redirect */}
             <Route path="/" element={<Navigate to="/login" replace />} />
+            
+            {/* Catch all route for 404s */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
           
           <Toaster 

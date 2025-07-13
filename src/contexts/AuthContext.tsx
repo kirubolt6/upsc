@@ -40,6 +40,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     let mounted = true;
     let profileFetchController: AbortController | null = null;
+    let initializationComplete = false;
 
     // Initialize auth state
     const initializeAuth = async () => {
@@ -53,6 +54,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (error) {
           console.error('❌ Error getting session:', error);
           resetAuthState();
+          initializationComplete = true;
           return;
         }
 
@@ -67,10 +69,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
           console.log('ℹ️ No existing session found');
           resetAuthState();
         }
+        initializationComplete = true;
       } catch (error) {
         console.error('❌ Error initializing auth:', error);
         if (mounted) {
           resetAuthState();
+          initializationComplete = true;
         }
       }
     };
@@ -137,6 +141,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Handle auth state changes
     const handleAuthStateChange = async (event: string, newSession: Session | null) => {
       if (!mounted) return;
+      
+      // Skip handling during initial load to prevent conflicts
+      if (!initializationComplete && event === 'INITIAL_SESSION') {
+        return;
+      }
       
       console.log('🔄 Auth state change:', event, newSession?.user?.id || 'no user');
       
