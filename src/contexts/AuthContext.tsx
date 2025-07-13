@@ -38,14 +38,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
-
     // Get initial session
     const getInitialSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!mounted) return;
         
         setSession(session);
         setUser(session?.user ?? null);
@@ -56,9 +52,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } catch (error) {
         console.error('Error getting session:', error);
       } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     };
 
@@ -67,8 +61,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!mounted) return;
-        
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -83,7 +75,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     );
 
     return () => {
-      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
