@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase, handleDatabaseError } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { Layout } from '../ui/Layout';
 import { BookOpen, Clock, Target, TrendingUp, Calendar, Flame } from 'lucide-react';
-import toast from 'react-hot-toast';
 
 interface SubjectProgress {
   id: string;
@@ -26,14 +25,6 @@ export function StudentDashboard() {
 
   const fetchProgress = async () => {
     try {
-      if (!profile?.id) {
-        console.log('No profile ID available');
-        setLoading(false);
-        return;
-      }
-
-      console.log('Fetching progress for user:', profile.id);
-
       // Fetch subjects with progress
       const { data: subjects, error: subjectsError } = await supabase
         .from('subjects')
@@ -48,11 +39,7 @@ export function StudentDashboard() {
         .eq('is_active', true)
         .order('order_index');
 
-      if (subjectsError) {
-        console.error('Error fetching subjects:', subjectsError);
-        toast.error(handleDatabaseError(subjectsError, 'fetch subjects'));
-        return;
-      }
+      if (subjectsError) throw subjectsError;
 
       // Fetch user progress
       const { data: userProgress, error: progressError } = await supabase
@@ -60,13 +47,7 @@ export function StudentDashboard() {
         .select('*')
         .eq('user_id', profile?.id);
 
-      if (progressError) {
-        console.error('Error fetching user progress:', progressError);
-        // Don't show error for missing progress records, just continue
-        if (progressError.code !== 'PGRST116') {
-          toast.error(handleDatabaseError(progressError, 'fetch progress'));
-        }
-      }
+      if (progressError) throw progressError;
 
       // Calculate progress for each subject
       const progressData: SubjectProgress[] = subjects?.map(subject => {
@@ -90,7 +71,6 @@ export function StudentDashboard() {
       generateMotivationalMessage(progressData);
     } catch (error) {
       console.error('Error fetching progress:', error);
-      toast.error('Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
