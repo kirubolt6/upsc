@@ -95,19 +95,12 @@ export function SectionView() {
 
   const markAsCompleted = async () => {
     try {
-      if (!profile?.id || !sectionId) {
-        toast.error('Missing user or section information');
-        return;
-      }
-
       const { error } = await supabase
         .from('user_section_progress')
         .upsert({
           user_id: profile?.id,
           section_id: sectionId,
           is_completed: true,
-          score: 100,
-          attempts: 1,
           completed_at: new Date().toISOString()
         });
 
@@ -147,11 +140,6 @@ export function SectionView() {
     // Only mark as completed if score is 100%
     if (finalScore === 100) {
       try {
-        if (!profile?.id || !sectionId) {
-          toast.error('Missing user or section information');
-          return;
-        }
-
         const { error } = await supabase
           .from('user_section_progress')
           .upsert({
@@ -168,7 +156,6 @@ export function SectionView() {
         toast.success('Test completed successfully! Section unlocked.');
       } catch (error) {
         console.error('Error updating progress:', error);
-        toast.error('Failed to save progress');
       }
     } else {
       toast.error('You need 100% to complete this section. Try again!');
