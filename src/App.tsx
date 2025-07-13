@@ -19,7 +19,6 @@ function App() {
       <Router>
         <div className="min-h-screen bg-gray-50">
           <Routes>
-            {/* Public Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             
@@ -85,9 +84,6 @@ function App() {
             
             {/* Default redirect */}
             <Route path="/" element={<Navigate to="/login" replace />} />
-            
-            {/* Catch all route */}
-            <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
           
           <Toaster 
@@ -97,18 +93,6 @@ function App() {
               style: {
                 background: '#363636',
                 color: '#fff',
-              },
-              success: {
-                duration: 3000,
-                style: {
-                  background: '#10B981',
-                },
-              },
-              error: {
-                duration: 5000,
-                style: {
-                  background: '#EF4444',
-                },
               },
             }}
           />
