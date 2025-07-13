@@ -40,7 +40,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     let mounted = true;
     let profileFetchController: AbortController | null = null;
-    let initializationComplete = false;
 
     // Initialize auth state
     const initializeAuth = async () => {
@@ -54,7 +53,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (error) {
           console.error('❌ Error getting session:', error);
           resetAuthState();
-          initializationComplete = true;
           return;
         }
 
@@ -69,12 +67,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           console.log('ℹ️ No existing session found');
           resetAuthState();
         }
-        initializationComplete = true;
       } catch (error) {
         console.error('❌ Error initializing auth:', error);
         if (mounted) {
           resetAuthState();
-          initializationComplete = true;
         }
       }
     };
@@ -142,11 +138,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const handleAuthStateChange = async (event: string, newSession: Session | null) => {
       if (!mounted) return;
       
-      // Skip handling during initial load to prevent conflicts
-      if (!initializationComplete && event === 'INITIAL_SESSION') {
-        return;
-      }
-      
       console.log('🔄 Auth state change:', event, newSession?.user?.id || 'no user');
       
       // Cancel any ongoing profile fetch
@@ -158,7 +149,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(newSession?.user ?? null);
       
       if (newSession?.user) {
-        // Don't set loading here, let fetchUserProfile handle it
         await fetchUserProfile(newSession.user.id);
       } else {
         resetAuthState();
@@ -186,12 +176,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log('🔄 Starting sign in process...');
       setLoading(true);
       
-      // Clear any existing session first
-      await supabase.auth.signOut();
-      
-      // Small delay to ensure cleanup
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
@@ -210,7 +194,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
       
       console.log('✅ Sign in successful for user:', data.user.id);
-      // Don't set loading to false here - let the auth state change handler manage it
       return { error: null };
       
     } catch (error) {
@@ -280,9 +263,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } else {
         console.log('✅ Sign out successful');
       }
-      
-      // Small delay to ensure cleanup
-      await new Promise(resolve => setTimeout(resolve, 100));
       
     } catch (error) {
       console.error('❌ Sign out error:', error);
