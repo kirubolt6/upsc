@@ -8,11 +8,11 @@ export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const { signIn, user, profile, loading: authLoading } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
+  const { signIn, user, profile, loading } = useAuth();
 
   // Redirect if already logged in
-  if (user && profile && !authLoading) {
+  if (user && profile && !loading) {
     return <Navigate to={profile.role === 'admin' ? '/admin' : '/dashboard'} replace />;
   }
 
@@ -24,29 +24,16 @@ export function Login() {
       return;
     }
 
-    // Prevent multiple submissions
-    if (loading) {
-      console.log('⚠️ Login already in progress, ignoring submission');
-      return;
-    }
+    if (submitting) return;
 
-    try {
-      console.log('🔄 Submitting login form...');
-      const { error } = await signIn(email.trim(), password);
-      
-      if (error) {
-        console.error('Login error:', error);
-        toast.error(error.message || 'Invalid email or password');
-      } else {
-        console.log('✅ Login form submission successful');
-        // Don't show success toast here - let the redirect happen naturally
-      }
-    } catch (error) {
-      console.error('Unexpected login error:', error);
-      toast.error('An unexpected error occurred');
-    }
-  };
+    setSubmitting(true);
+    const { error } = await signIn(email.trim(), password);
     
+    if (error) {
+      toast.error(error.message || 'Invalid email or password');
+    }
+    setSubmitting(false);
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -118,10 +105,10 @@ export function Login() {
           <div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={submitting}
               className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
-              {loading ? (
+              {submitting ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
                 'Sign in'
