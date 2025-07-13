@@ -18,31 +18,32 @@ export function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!email.trim() || !password) {
       toast.error('Please fill in all fields');
       return;
     }
 
+    // Prevent multiple submissions
     if (loading) {
-      return; // Prevent multiple submissions
+      console.log('⚠️ Login already in progress, ignoring submission');
+      return;
     }
 
-    setLoading(true);
-    
     try {
+      console.log('🔄 Submitting login form...');
       const { error } = await signIn(email.trim(), password);
       
       if (error) {
         console.error('Login error:', error);
-        toast.error(error.message || 'Failed to sign in');
+        toast.error(error.message || 'Invalid email or password');
       } else {
-        toast.success('Logged in successfully!');
+        console.log('✅ Login form submission successful');
+        // Don't show success toast here - let the redirect happen naturally
       }
     } catch (error) {
       console.error('Unexpected login error:', error);
       toast.error('An unexpected error occurred');
-    } finally {
-      setLoading(false);
     }
   };
     
