@@ -38,10 +38,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
     // Get initial session
     const getInitialSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+        
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -51,7 +56,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } catch (error) {
         console.error('Error getting session:', error);
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -60,6 +67,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+        
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -73,7 +82,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchProfile = async (userId: string) => {
@@ -97,7 +109,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      setLoading(true);
       const { error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
@@ -105,14 +116,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return { error };
     } catch (error) {
       return { error };
-    } finally {
-      setLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string, fullName: string, role: 'admin' | 'student') => {
     try {
-      setLoading(true);
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
@@ -136,22 +144,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return { error: null };
     } catch (error) {
       return { error };
-    } finally {
-      setLoading(false);
     }
   };
 
   const signOut = async () => {
     try {
-      setLoading(true);
       await supabase.auth.signOut();
       setUser(null);
       setProfile(null);
       setSession(null);
     } catch (error) {
       console.error('Error signing out:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
