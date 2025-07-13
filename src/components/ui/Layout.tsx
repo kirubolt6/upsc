@@ -1,35 +1,19 @@
 import React, { ReactNode } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Sidebar } from './Sidebar';
 
-interface ProtectedRouteProps {
+interface LayoutProps {
   children: ReactNode;
-  requireAdmin?: boolean;
-  requireStudent?: boolean;
 }
 
-export function ProtectedRoute({ children, requireAdmin = false, requireStudent = false }: ProtectedRouteProps) {
-  const { user, profile, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+export function Layout({ children }: LayoutProps) {
+  return (
+    <div className="flex h-screen bg-gray-50">
+      <Sidebar />
+      <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 lg:p-6">
+          {children}
+        </main>
       </div>
-    );
-  }
-
-  if (!user || !profile) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (requireAdmin && profile.role !== 'admin') {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  if (requireStudent && profile.role !== 'student') {
-    return <Navigate to="/admin" replace />;
-  }
-
-  return <>{children}</>;
+    </div>
+  );
 }
